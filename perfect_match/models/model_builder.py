@@ -24,7 +24,6 @@ from keras.layers.advanced_activations import ELU
 from keras.layers import Input, Dense, Dropout, Lambda
 from keras.layers.normalization import BatchNormalization
 from perfect_match.models.distributions import wasserstein, safe_sqrt
-from perfect_match.models.per_sample_dropout import PerSampleDropout
 
 
 class ModelBuilder(object):
@@ -74,8 +73,8 @@ class ModelBuilder(object):
                                                 beta_regularizer=L1L2(l2=l2_weight))(last_layer)
             last_layer = ELU()(last_layer)
             last_layer = Dropout(p_dropout)(last_layer)
-            if propensity_dropout is not None:
-                last_layer = PerSampleDropout(propensity_dropout)(last_layer)
+            # if propensity_dropout is not None:
+            #     last_layer = PerSampleDropout(propensity_dropout)(last_layer)
 
         if normalize:
             last_layer = Lambda(lambda x: x / safe_sqrt(tf.reduce_sum(tf.square(x),

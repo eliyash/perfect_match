@@ -135,16 +135,16 @@ class EvaluationApplication(object):
 
         save_predictions = self.args["save_predictions"]
 
-        self.benchmark.initialise(self.args)
-        benchmark_generator, orig_benchmark_steps = self.make_train_generator(stratify=False)
-        benchmark_generator, benchmark_steps = make_keras_generator(self.args,
-                                                                    benchmark_generator,
-                                                                    orig_benchmark_steps,
-                                                                    batch_size=orig_benchmark_steps,
-                                                                    num_losses=1,
-                                                                    benchmark=self.benchmark)
-
-        self.benchmark.fit(benchmark_generator, benchmark_steps, orig_benchmark_steps)
+        # self.benchmark.initialise(self.args)
+        # benchmark_generator, orig_benchmark_steps = self.make_train_generator(stratify=False)
+        # benchmark_generator, benchmark_steps = make_keras_generator(self.args,
+        #                                                             benchmark_generator,
+        #                                                             orig_benchmark_steps,
+        #                                                             batch_size=orig_benchmark_steps,
+        #                                                             num_losses=1,
+        #                                                             benchmark=self.benchmark)
+        #
+        # self.benchmark.fit(benchmark_generator, benchmark_steps, orig_benchmark_steps)
 
         train_generator, train_steps = self.make_train_generator()
         val_generator, val_steps = self.make_validation_generator()
