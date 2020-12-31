@@ -18,10 +18,10 @@ DEALINGS IN THE SOFTWARE.
 import tensorflow as tf
 import keras.backend as K
 from keras.models import Model
-from keras.regularizers import L1L2
+from tensorflow.python.keras.regularizers import L1L2
 from keras.optimizers import Adam, RMSprop
-from keras.layers.advanced_activations import LeakyReLU, ELU, PReLU
-from keras.layers import Input, Dense, Dropout, Lambda, LSTM, Reshape, concatenate, Activation, Bidirectional, TimeDistributed
+from keras.layers.advanced_activations import ELU
+from keras.layers import Input, Dense, Dropout, Lambda
 from keras.layers.normalization import BatchNormalization
 from perfect_match.models.distributions import wasserstein, safe_sqrt
 from perfect_match.models.per_sample_dropout import PerSampleDropout
@@ -63,7 +63,7 @@ class ModelBuilder(object):
 
         for i in range(num_layers):
             last_layer = Dense(dim,
-                               kernel_regularizer=L1L2(l2=l2_weight),
+                               kernel_regularizer= L1L2(l2=l2_weight),
                                bias_regularizer=L1L2(l2=l2_weight),
                                use_bias=not with_bn,
                                activity_regularizer=last_activity_regulariser if i == num_layers-1 else None)\

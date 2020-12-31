@@ -306,8 +306,7 @@ class CFRNet(object):
                   "xx" if did_save else "::",
                   train_losses[0], train_losses[1], train_losses[2],
                   val_losses[0], val_losses[1], val_losses[2],
-              ),
-              file=sys.stderr)
+              ))
 
     def run_generator(self, generator, steps, dropout, imbalance_loss_weight, l2_weight, train_step=None):
         losses = []

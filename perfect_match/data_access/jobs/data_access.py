@@ -18,11 +18,14 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import print_function
 
 import os
-import sys
 import sqlite3
 import numpy as np
 from os.path import join
 from perfect_match.data_access.batch_augmentation import BatchAugmentation
+from perfect_match.data_access.jobs.data_preperation import get_data
+
+TEST_FILE = r"..\data\transformed_test_data.csv"
+TRAIN_FILE = r"..\data\transformed_train_data.csv"
 
 
 class DataAccess(BatchAugmentation):
@@ -31,7 +34,7 @@ class DataAccess(BatchAugmentation):
 
     def __init__(self, data_dir, seed, experiment_index):
         self.data_dir = data_dir
-        self.x, self.y0, self.y1, self.z, self.e, self.train_indices, self.test_indices =\
+        self.i, self.x, self.y, self.z, self.e, self.train_indices, self.test_indices =\
             self.generate_new_dataset(seed, experiment_index)
         self.db = None
         self.connect()
@@ -41,34 +44,28 @@ class DataAccess(BatchAugmentation):
     def get_split_indices(self):
         return None, None
 
-    def generate_new_dataset(self, seed, experiment_index):
-        this_directory = os.path.dirname(os.path.realpath(__file__))
-        train_file_path = join(this_directory, "jobs_DW_bin.train.npz")
-        test_file_path = join(this_directory, "jobs_DW_bin.test.npz")
+    @staticmethod
+    def generate_new_dataset(seed, experiment_index):
+        all_data_df, n_train, n_test, t_keys = get_data(TRAIN_FILE, TEST_FILE)
 
-        print("INFO: Using Jobs set", experiment_index, ".", file=sys.stderr)
-        train_set = np.load(train_file_path)
-        test_set = np.load(test_file_path)
-
-        def get_field(name, squeeze=False):
-            return np.concatenate([train_set[name],
-                                   test_set[name]], axis=0)
-
-        n_train, n_test = train_set["x"].shape[0], test_set["x"].shape[0]
         train_indices = np.arange(0, n_train)
         test_indices = np.arange(n_train, n_train+n_test)
-        y_f = get_field("yf")
-        t = np.squeeze(get_field("t").astype(int))
-        y = np.zeros((n_train+n_test, 2))
-        y[t == 0, 0:1] = y_f[t == 0]
-        y[t == 1, 1:2] = y_f[t == 1]
 
-        e = np.squeeze(get_field("e"), axis=-1).astype(int)
-        x = np.squeeze(get_field("x"), axis=-1)
-        x = np.column_stack([np.expand_dims(np.arange(n_train+n_test)+1, axis=-1), x])
+        y_key = 'remsn'
+        t_as_one_hot = all_data_df[t_keys]
+        remsn = all_data_df[[y_key]]
+        x = all_data_df.drop(columns=t_keys + [y_key])
 
-        return x, y[:, 0], y[:, 1], \
-               t, e, train_indices, test_indices
+        def get_t(row):
+            for ind, val in enumerate(row):
+                if val == 1:
+                    return ind
+
+        t = t_as_one_hot.apply(get_t, axis=1)
+
+        y = t_as_one_hot * np.repeat(np.array(remsn), t_as_one_hot.shape[-1], axis=1)
+        i = np.arange(n_train+n_test).astype('int') + 1
+        return i, np.array(x), np.array(y), np.array(t).astype('int'), np.array(t).astype('int') * 0, train_indices, test_indices
 
     def connect(self):
         db_file = join(self.data_dir, DataAccess.DB_FILE_NAME)
@@ -85,9 +82,7 @@ class DataAccess(BatchAugmentation):
 
     def initialise_data(self):
         with self.db:
-            self.insert_many(DataAccess.TABLE_JOBS, zip(self.x[:, 0], self.x[:, 1:],
-                                                        self.y0, self.y1, self.z,
-                                                        self.e))
+            self.insert_many(DataAccess.TABLE_JOBS, zip(self.i, self.x, self.y, self.z, self.e))
 
     def setup_schema(self):
         self.setup_jobs()
@@ -98,8 +93,7 @@ class DataAccess(BatchAugmentation):
                          "("
                          "id INT NOT NULL PRIMARY KEY, "
                          "x ARRAY, "
-                         "y0 FLOAT, "
-                         "y1 FLOAT, "
+                         "y ARRAY, "
                          "t INT, "
                          "e INT "
                          ");").format(table_name=DataAccess.TABLE_JOBS))

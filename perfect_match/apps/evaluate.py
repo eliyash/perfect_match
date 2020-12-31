@@ -101,14 +101,14 @@ class EvaluationApplication(object):
     def evaluate_model(self, model, test_generator, test_steps, with_print=True, set_name=""):
         pass
 
-    def make_train_generator(self):
-        pass
+    def make_train_generator(self, *args, **kwargs):
+        return None, None
 
     def make_validation_generator(self):
-        pass
+        return None, None
 
     def make_test_generator(self):
-        pass
+        return None, None
 
     def get_hyperopt_parameters(self):
         return {}
@@ -177,7 +177,8 @@ class EvaluationApplication(object):
                                          with_print=evaluate_against == "val", set_name="test")
         return eval_score, test_score
 
-    def bsub_with_args(self, args, dependencies=None, is_gpu=False):
+    @staticmethod
+    def bsub_with_args(args, dependencies=None, is_gpu=False):
         this_directory = os.path.dirname(os.path.abspath(__file__))
         log_file = join(args["output_directory"], "run.txt")
 

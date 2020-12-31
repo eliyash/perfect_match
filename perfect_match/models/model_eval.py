@@ -442,10 +442,10 @@ class ModelEvaluation(object):
                 result = np.array(benchmark.data_access.get_rows(id_set, columns="mu0, mu1"))
                 all_mu0.append(result[:, 0])
                 all_mu1.append(result[:, 1])
-            elif is_jobs:
-                id_set = get_last_id_set()
-                result = np.array(benchmark.data_access.get_rows(id_set, columns="e"))
-                all_e.append(result[:, 0])
+            # elif is_jobs:
+            #     id_set = get_last_id_set()
+            #     result = np.array(benchmark.data_access.get_rows(id_set, columns="e"))
+            #     all_e.append(result[:, 0])
 
             treatment_outputs = []
             for treatment_idx in range(benchmark.get_num_treatments()):
@@ -454,8 +454,7 @@ class ModelEvaluation(object):
                     continue
 
                 original_treatment = batch_input[1][not_none_indices]
-                current_batch_input = [np.copy(batch_input[0]),\
-                                       np.ones_like(batch_input[1])*treatment_idx]
+                current_batch_input = [np.copy(batch_input[0]), np.ones_like(batch_input[1])*treatment_idx]
 
                 model_output = model.predict(current_batch_input)
                 if isinstance(model_output, list):
@@ -485,8 +484,8 @@ class ModelEvaluation(object):
         if is_ihdp:
             all_mu0 = np.concatenate(all_mu0, axis=0)
             all_mu1 = np.concatenate(all_mu1, axis=0)
-        elif is_jobs:
-            all_e = np.concatenate(all_e, axis=0)
+        # elif is_jobs:
+        #     all_e = np.concatenate(all_e, axis=0)
 
         y_pred, y_true, _ = ModelEvaluation.get_y_from_outputs(model, all_outputs, num_steps,
                                                                selected_slice=-1, selected_index=0)

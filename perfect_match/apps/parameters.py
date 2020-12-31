@@ -38,7 +38,7 @@ def parse_parameters():
                         help="Folder containing the data set to be loaded.")
     parser.add_argument("--seed", type=int, default=909,
                         help="Seed for the random number generator.")
-    parser.add_argument("--output_directory", default="./models",
+    parser.add_argument("--output_directory", default="../models",
                         help="Base directory of all output files.")
     parser.add_argument("--model_name", default="forecast.h5.npz",
                         help="Base directory of all output files.")
@@ -54,7 +54,7 @@ def parse_parameters():
                         help="Number of epochs to train for.")
     parser.add_argument("--batch_size", type=int, default=8,
                         help="Batch size to use for training.")
-    parser.add_argument("--early_stopping_patience", type=int, default=12,
+    parser.add_argument("--early_stopping_patience", type=int, default=100,
                         help="Number of stale epochs to wait before terminating training")
     parser.add_argument("--num_units", type=int, default=8,
                         help="Number of neurons to use in DNN layers.")

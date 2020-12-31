@@ -24,14 +24,10 @@ import numpy as np
 import pandas as pd
 from os.path import join
 
-# Configure tensorflow not to use the entirety of GPU memory.
 import tensorflow as tf
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
 
-from keras.callbacks import TensorBoard
 from perfect_match.apps.util import time_function
+from perfect_match.data_access.patient_generator import make_generator, get_last_row_id
 from perfect_match.models.model_eval import ModelEvaluation
 from perfect_match.apps.evaluate import EvaluationApplication
 from perfect_match.data_access.generator import make_keras_generator
@@ -48,7 +44,12 @@ from perfect_match.models.baselines.gradientboosted import GradientBoostedTrees
 from perfect_match.models.baselines.bart import BayesianAdditiveRegressionTrees
 from perfect_match.models.baselines.ordinary_least_squares import OrdinaryLeastSquares1, OrdinaryLeastSquares2
 from perfect_match.apps.parameters import clip_percentage, parse_parameters
-from perfect_match.data_access.patient_generator import make_generator, get_last_row_id
+
+# Configure tensorflow not to use the entirety of GPU memory.
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
 
 
 class MainApplication(EvaluationApplication):

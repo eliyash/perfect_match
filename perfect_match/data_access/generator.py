@@ -18,7 +18,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import print_function
 
 import numpy as np
-from keras.utils import to_categorical
+from keras.utils.np_utils import to_categorical
 from perfect_match.data_access.patient_generator import get_last_row_id
 
 
@@ -50,7 +50,7 @@ def make_keras_generator(args, wrapped_generator, num_steps,
                 batch_y = batch_y * num_losses
 
             if with_propensity_dropout and (method == "nn" or method == "nn+"):
-                batch_y = [to_categorical(batch_x[1], num_classes=benchmark.get_num_treatments()), batch_y]
+                batch_y = [to_categorical(batch_x[1], benchmark.get_num_treatments()), batch_y]
 
             yield batch_x, batch_y
 

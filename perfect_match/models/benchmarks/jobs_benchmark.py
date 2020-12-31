@@ -27,7 +27,7 @@ class JobsBenchmark(object):
         self.data_access = DataAccess(data_dir, kwargs["seed"], kwargs["experiment_index"])
         self.assignment_cache = {}
         self.assign_counterfactuals = False
-        self.num_treatments = 2
+        self.num_treatments = self.data_access.y.shape[1]
         self.seed = kwargs["seed"]
         self.random_generator = None
 
@@ -47,11 +47,12 @@ class JobsBenchmark(object):
     def get_data_access(self):
         return self.data_access
 
+    # TODO: update
     def get_input_shapes(self, args):
-        return (17,)
+        return (self.data_access.x.shape[1],)
 
     def get_output_shapes(self, args):
-        return (1,)
+        return (self.data_access.y.shape[1],)
 
     def initialise(self, args):
         data_dir = args["output_directory"]
@@ -79,11 +80,10 @@ class JobsBenchmark(object):
 
     def _assign(self, id):
         treatment_chosen = self.data_access.get_row(DataAccess.TABLE_JOBS, id, columns="t")[0]
-        y = np.array(self.data_access.get_row(DataAccess.TABLE_JOBS, id, columns="y0,y1"))
+        y = np.array(self.data_access.get_row(DataAccess.TABLE_JOBS, id, columns="y"))[0]
 
         # We do not have counterfactual outcomes in this experiment.
-        if treatment_chosen == 0:
-            y = [y[0], None]
-        else:
-            y = [None, y[1]]
-        return treatment_chosen, y
+        y_return = [None]*len(y)
+        y_return[treatment_chosen] = y[treatment_chosen]
+
+        return treatment_chosen, y_return
