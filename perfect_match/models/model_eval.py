@@ -20,6 +20,9 @@ from __future__ import print_function
 import sys
 import numpy as np
 from bisect import bisect_right
+
+from keras.utils.np_utils import to_categorical
+
 from perfect_match.data_access.generator import get_last_id_set
 from perfect_match.models.benchmarks.ihdp_benchmark import IHDPBenchmark
 from perfect_match.models.benchmarks.jobs_benchmark import JobsBenchmark
@@ -201,7 +204,6 @@ class ModelEvaluation(object):
 
     @staticmethod
     def calculate_statistics_multiclass(y_true, y_pred, set_name, with_print):
-        from keras.utils import to_categorical
 
         # Remove columns where all y_true are 0 - this would cause an error in calculating the statistics.
         present_columns = y_true.any(axis=0)
@@ -220,7 +222,7 @@ class ModelEvaluation(object):
             auprc_score = average_precision_score(y_true, y_pred, average="weighted")
             r2 = r2_score(y_true, y_pred, multioutput="variance_weighted")
 
-            y_thresh = to_categorical(np.argmax(y_pred, axis=-1), num_classes=y_pred.shape[-1])
+            y_thresh = to_categorical(np.argmax(y_pred, axis=-1), nb_classes=y_pred.shape[-1])
             f1 = f1_score(y_true, y_thresh, average="weighted")
 
             if with_print:
@@ -351,7 +353,7 @@ class ModelEvaluation(object):
             else:
                 batch_input, labels_batch = generator_outputs
 
-            all_outputs.append((model.predict(batch_input), labels_batch))
+            all_outputs.append((model.predict(batch_input), labels_batch, batch_input[1]))
         return all_outputs
 
     @staticmethod
@@ -363,7 +365,7 @@ class ModelEvaluation(object):
             output_dim = 1
 
         for current_step in range(num_steps):
-            model_outputs, labels_batch = all_outputs[current_step]
+            model_outputs, labels_batch, _ = all_outputs[current_step]
 
             if isinstance(model_outputs, list):
                 model_outputs = model_outputs[selected_slice]
@@ -398,24 +400,50 @@ class ModelEvaluation(object):
         assert y_true.shape[-1] == y_pred.shape[-1]
         assert y_true.shape[0] == y_pred.shape[0]
         assert y_true.shape[0] == num_steps * batch_size
-        return y_pred, y_true, output_dim
+        return y_pred, y_true, output_dim, [output[2] for output in all_outputs]
 
-    @staticmethod
-    def evaluate(model, generator, num_steps, set_name="Test set", selected_slices=list([-1]), with_print=True):
+    @classmethod
+    def evaluate(cls, model, generator, num_steps, set_name="Test set", selected_slices=list([-1]), with_print=True):
         all_outputs = ModelEvaluation.collect_all_outputs(model, generator, num_steps)
 
         for i, selected_slice in enumerate(selected_slices):
-            y_pred, y_true, output_dim = ModelEvaluation.get_y_from_outputs(model, all_outputs, num_steps,
-                                                                            selected_slice, i)
 
-            if output_dim == 1:
-                # TODO: Switch for regression setting.
-                score_dict = ModelEvaluation.calculate_statistics_binary(y_true, y_pred,
-                                                                         set_name + str(i), with_print)
-            else:
-                score_dict = ModelEvaluation.calculate_statistics_multiclass(y_true, y_pred,
-                                                                             set_name + str(i), with_print)
+            y_pred, y_true, output_dim, treatments = ModelEvaluation.get_y_from_outputs(model, all_outputs, num_steps,
+                                                                            selected_slice, i)
+            cls.calculate_recommended_remission_rate(y_true, y_pred, treatments[0])
+            score_dict = {}
+            # if output_dim == 1:
+            #     # TODO: Switch for regression setting.
+            #     y_true_chosen = np.array([y_true[ind, treatment] for ind, treatment in enumerate(treatments)])
+            #     y_pred_chosen = np.array([y_pred[ind, treatment] for ind, treatment in enumerate(treatments)])
+            #     score_dict = ModelEvaluation.calculate_statistics_binary(y_true_chosen, y_pred_chosen,
+            #                                                              set_name + str(i), with_print)
+            # else:
+            #     score_dict = ModelEvaluation.calculate_statistics_multiclass(y_true, y_pred,
+            #                                                                  set_name + str(i), with_print)
         return score_dict
+
+    @staticmethod
+    def calculate_recommended_remission_rate(y_true_all, y_pred_all, treatments_all):
+        best_treatments = []
+        remission_recommended_drug = 0
+        total_recommended_drug = 0
+        for y_true, y_pred, treatment in zip(y_true_all, y_pred_all, treatments_all):
+            top_index = np.argmax(y_pred)
+            # if for the patient the recommended drug is the actual drug he received
+            if top_index == treatment[0]:
+                total_recommended_drug += 1
+                remission_recommended_drug += y_true[top_index]
+            best_treatments.append(np.array2string(top_index))
+
+        # print the  "best" treatment for each patient
+        best_treatments_count = [(treatment, best_treatments.count(treatment)) for treatment in set(best_treatments)]
+        [print('treatment {}: {}'.format(treat, count)) for treat, count in best_treatments_count]
+
+        print("****************************REMISSION RATE OF PATIENTS WHO RECEIVED RECOMMENDED DRUG********")
+        # print the average of the max prediction
+        print(remission_recommended_drug / float(total_recommended_drug))
+        print(total_recommended_drug)
 
     @staticmethod
     def evaluate_counterfactual(model, generator, num_steps, benchmark, set_name="Test set", with_print=True,
@@ -449,7 +477,7 @@ class ModelEvaluation(object):
 
             treatment_outputs = []
             for treatment_idx in range(benchmark.get_num_treatments()):
-                not_none_indices = np.where(np.not_equal(labels_batch[:, treatment_idx], None))[0]
+                not_none_indices = np.where(np.equal(batch_input[1][:], treatment_idx))[0]
                 if len(not_none_indices) == 0:
                     continue
 
@@ -460,21 +488,21 @@ class ModelEvaluation(object):
                 if isinstance(model_output, list):
                     model_output = model_output[selected_slice]
 
-                none_indices = np.where(np.equal(labels_batch[:, treatment_idx], None))[0]
+                none_indices = np.where(np.not_equal(batch_input[1][:], treatment_idx))[0]
 
                 if len(none_indices) != 0:
                     full_length = len(labels_batch)
                     inferred_labels = np.array([None]*full_length)
                     inferred_labels[not_none_indices] = labels_batch[not_none_indices, treatment_idx]
-                    result = (model_output, inferred_labels)
+                    result = (model_output[:, treatment_idx], inferred_labels)
                 else:
-                    result = (model_output, labels_batch[not_none_indices, treatment_idx])
+                    result = (model_output[:, treatment_idx], labels_batch[not_none_indices, treatment_idx])
                 treatment_outputs.append(result)
 
             y_pred = np.column_stack(map(lambda x: x[0], treatment_outputs))
             y_true = np.column_stack(map(lambda x: x[1], treatment_outputs))
 
-            all_outputs.append((y_pred, y_true))
+            all_outputs.append((y_pred, y_true, None))
             all_x.append(batch_input[0])
             all_treatments.append(batch_input[1])
 
@@ -487,7 +515,7 @@ class ModelEvaluation(object):
         # elif is_jobs:
         #     all_e = np.concatenate(all_e, axis=0)
 
-        y_pred, y_true, _ = ModelEvaluation.get_y_from_outputs(model, all_outputs, num_steps,
+        y_pred, y_true, _, _ = ModelEvaluation.get_y_from_outputs(model, all_outputs, num_steps,
                                                                selected_slice=-1, selected_index=0)
 
         y_pred_f, y_true_f = y_pred[np.arange(len(y_pred)), all_treatments], \

@@ -62,9 +62,9 @@ class ModelBuilder(object):
 
         for i in range(num_layers):
             last_layer = Dense(dim,
-                               kernel_regularizer= L1L2(l2=l2_weight),
-                               bias_regularizer=L1L2(l2=l2_weight),
-                               use_bias=not with_bn,
+                               W_regularizer=L1L2(l2=l2_weight),
+                               b_regularizer=L1L2(l2=l2_weight),
+                               bias=not with_bn,
                                activity_regularizer=last_activity_regulariser if i == num_layers-1 else None)\
                 (last_layer)
 
@@ -141,8 +141,8 @@ class ModelBuilder(object):
         model_outputs.append(output)
         loss_weights.append(1)
 
-        model = Model(inputs=[rnaseq_input, treatment_input],
-                      outputs=model_outputs)
+        model = Model(input=[rnaseq_input, treatment_input],
+                      output=model_outputs)
         model.summary()
 
         main_model = ModelBuilder.compile_model(model, learning_rate,
@@ -248,8 +248,8 @@ class ModelBuilder(object):
         model_outputs.append(output)
         loss_weights.append(1)
 
-        model = Model(inputs=[rnaseq_input, treatment_input],
-                      outputs=model_outputs)
+        model = Model(input=[rnaseq_input, treatment_input],
+                      output=model_outputs)
         model.summary()
 
         main_model = ModelBuilder.compile_model(model, learning_rate,

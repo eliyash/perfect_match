@@ -26,7 +26,7 @@ class JobsBenchmark(object):
         data_dir = kwargs["output_directory"]
         self.data_access = DataAccess(data_dir, kwargs["seed"], kwargs["experiment_index"])
         self.assignment_cache = {}
-        self.assign_counterfactuals = False
+        self.assign_counterfactuals = True
         self.num_treatments = self.data_access.y.shape[1]
         self.seed = kwargs["seed"]
         self.random_generator = None
@@ -69,10 +69,7 @@ class JobsBenchmark(object):
 
         assigned_treatment, assigned_y = self.assignment_cache[id]
 
-        if self.assign_counterfactuals:
-            return assigned_treatment, assigned_y
-        else:
-            return assigned_treatment, assigned_y[assigned_treatment]
+        return assigned_treatment, assigned_y
 
     @staticmethod
     def sigmoid(x):
@@ -83,7 +80,7 @@ class JobsBenchmark(object):
         y = np.array(self.data_access.get_row(DataAccess.TABLE_JOBS, id, columns="y"))[0]
 
         # We do not have counterfactual outcomes in this experiment.
-        y_return = [None]*len(y)
+        y_return = [0.0]*len(y)
         y_return[treatment_chosen] = y[treatment_chosen]
 
         return treatment_chosen, y_return

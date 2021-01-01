@@ -24,8 +24,8 @@ from os.path import join
 from perfect_match.data_access.batch_augmentation import BatchAugmentation
 from perfect_match.data_access.jobs.data_preperation import get_data
 
-TEST_FILE = r"..\data\transformed_test_data.csv"
-TRAIN_FILE = r"..\data\transformed_train_data.csv"
+TEST_FILE = r"..\..\data\transformed_test_data.csv"
+TRAIN_FILE = r"..\..\data\transformed_train_data.csv"
 
 
 class DataAccess(BatchAugmentation):

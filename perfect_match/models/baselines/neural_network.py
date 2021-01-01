@@ -85,14 +85,14 @@ class NeuralNetwork(Baseline):
 
         self.model.fit_generator(train_generator,
                                  train_steps,
-                                 epochs=num_epochs,
+                                 nb_epoch=num_epochs,
                                  validation_data=val_generator,
-                                 validation_steps=val_steps,
+                                 nb_val_samples=val_steps,
                                  callbacks=self.make_callbacks(val_generator,
                                                                val_steps,
                                                                **self.kwargs),
                                  verbose=2,
-                                 workers=0)
+                                 nb_worker=1)
 
         print("INFO: Resetting to best encountered model at", self.best_model_path, ".", file=sys.stderr)
 
